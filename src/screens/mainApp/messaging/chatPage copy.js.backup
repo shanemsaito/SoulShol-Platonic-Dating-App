@@ -1,0 +1,315 @@
+import React from 'react';
+import { View, StyleSheet, Text, FlatList, TextInput, TouchableOpacity } from 'react-native';
+import firebase from 'react-native-firebase';
+import MyContext from '../../../utils/MyContext';
+
+/* TODO 
+1. When the page first loads, the messages begin to add in one by one. They should all be loaded beforehand.
+2. Have text input expand vertically instead of horizontally when typing a large message
+3. Better shadow for iOS & Android (universal)
+4. Show keyboard on iOS
+
+*/
+
+const Message = (props) => {
+    //This component is the individual message "bubble" that contains text
+    return (
+        //We use props here because the color of the bubble depends on
+        //wheter the message was sent by the currentUser or the receiver
+        //The same with the text
+        <View style={props.messageBackground}>
+            <Text style={props.messageText}>
+                {props.message}
+            </Text>
+        </View>
+    );
+};
+
+export default function ChatPage(props) {
+    let [conversation, setConversation] = React.useState([]);
+    let [message, setMessage] = React.useState('');
+    let [listenerOn, setListenerOn] = React.useState(true);
+
+    let { user } = React.useContext(MyContext);
+    const userUID = (user) ? user.uid : '';
+
+    React.useEffect(() => {
+        // Message database reference
+        const convoRef = firebase.database().ref('messages/conversations/' + props.convoReference).orderByChild('time');
+
+        // Fetches all previous messages
+        // convoRef.once('value', snapshot => {
+        //     this.setState({listenerOn: true})
+        //     snapshot.forEach(childSnapshot => {
+
+        //         this.setState({ 
+        //             conversation: [childSnapshot.val(), ...this.state.conversation]
+        //         });
+        //     });
+
+        // });
+
+        // Fetches old messages and handles new messages
+        convoRef.on('child_added', snapshot => {
+            if (listenerOn) {
+                setConversation(conversation => [snapshot.val(), ...conversation]);
+            }
+        });
+
+        /* convoRef.orderByChild('time').on('child_added', snapshot => {
+            snapshot.forEach(childSnapshot => {
+                this.setState({conversation: [...this.state.conversation, childSnapshot.val()]})
+            })
+        }
+        
+        )
+        */
+    }, []);
+
+    const sendMessage = () => {
+        // Temporarily save state into variables here, maybe const or let idk
+        // Then clear the state so user doesn't send message twice
+        // Finally send the shit to firebase lol rekt
+        if (message === '') {
+            return;
+        }
+
+        setMessage('');
+
+        const messageRef = firebase.database().ref('messages/conversations/' + props.convoReference);
+        const senderUID = userUID;
+        const receiverUID = props.receiverUID;
+        const recentMessagesreceiverRef = firebase.database().ref('messages/recentMessages/' + receiverUID + '/' + senderUID);
+        const recentMessagesSenderRef = firebase.database().ref('messages/recentMessages/' + senderUID + '/' + receiverUID);
+        messageRef.push({
+            sender: senderUID,
+            message,
+            time: Date.now(),
+            order: 0 - Date.now()
+        });
+        recentMessagesreceiverRef.set({
+            sender: senderUID,
+            receiver: receiverUID,
+            message,
+            time: Date.now()
+        });
+        recentMessagesSenderRef.set({
+            sender: senderUID,
+            receiver: receiverUID,
+            message,
+            time: Date.now()
+        });
+        //Clears text input when send is clicked
+        // this.textInput.clear()
+        //Clears the message state once message is sent
+        // this.setState({message: ''})
+    };
+
+    return (
+        <View style={styles.background}>
+
+            <View style={styles.header}>
+
+                <TouchableOpacity
+                    style={styles.backButtonContainer}
+                    onPress={props.goBack}
+                >
+                    <View style={styles.backButtonView}>
+                        <Text style={styles.backButtonText}>
+                            &lt;
+                        </Text>
+                    </View>
+                </TouchableOpacity>
+
+                <View style={styles.chatTitleView}>
+                    <Text style={styles.chatTitleText}>
+                        {props.username}
+                    </Text>
+                </View>
+
+            </View>
+
+            {
+                conversation.length > 0 &&
+                <FlatList
+                    data={conversation}
+                    inverted
+                    keyExtractor={(_item, index) => index.toString()}
+                    renderItem={({ item }) =>
+                        <Message
+                            message={item.message}
+                            messageBackground={(item.sender === userUID) ? styles.userMessageBackground : styles.receiverMessageBackground}
+                            messageText={(item.sender === userUID) ? styles.userMessageText : styles.receiverMessageText}
+                        />
+                    }
+                    style={styles.messages}
+                />
+            }
+
+            <View style={styles.bottom}>
+
+                <View style={styles.textInputContainer}>
+                    <TextInput
+                        style={styles.messageText}
+                        value={message}
+                        placeholder='Type a message...'
+                        placeholderTextColor='#C3D4D9'
+                        textAlignVertical='center'
+                        multiline={true}
+                        onChangeText={msg => setMessage(msg)}
+                    />
+                </View>
+
+                <TouchableOpacity
+                    onPress={sendMessage}
+                    style={styles.sendButton}
+                >
+                    <Text style={styles.sendText}>
+                        Send
+                    </Text>
+                </TouchableOpacity>
+
+            </View>
+
+        </View>
+    );
+};
+
+const styles = StyleSheet.create({
+    background: {
+        backgroundColor: 'white',
+        width: '100%',
+        height: '100%',
+        position: 'absolute',
+        left: 0,
+        top: 0
+    },
+    header: {
+        height: 60,
+        flexDirection: 'row',
+        width: '100%'
+    },
+    backButtonContainer: {
+        width: '20%',
+        height: '100%'
+    },
+    backButtonView: {
+        padding: 20,
+        alignItems: 'center',
+        justifyContent: 'center',
+        width: '100%',
+        height: '100%'
+    },
+    backButtonText: {
+        fontFamily: 'HelveticaNeue',
+        fontSize: 30,
+        color: '#98AFB3',
+        fontWeight: 'bold',
+        textAlign: 'center',
+        textAlignVertical: 'center'
+    },
+    chatTitleView: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'flex-start',
+        width: '80%',
+        height: '100%',
+        paddingLeft: 20
+    },
+    chatTitleText: {
+        fontFamily: 'HelveticaNeue',
+        textAlign: 'left',
+        fontSize: 18,
+        fontWeight: '600',
+        color: '#98AFB3',
+        textAlignVertical: 'center'
+    },
+    userMessageBackground: {
+        marginBottom: 5,
+        right: 20,
+        alignSelf: 'flex-end',
+        backgroundColor: '#93C5D5',
+        flexWrap: 'wrap',
+        justifyContent: 'center',
+        alignItems: 'center',
+        maxWidth: '70%',
+        borderRadius: 20,
+        borderTopRightRadius: 0,
+        paddingVertical: 8,
+        paddingHorizontal: 10,
+        // shadow
+        elevation: 7,
+        shadowColor: '#93C5D5',
+        shadowOpacity: 0.5,
+        shadowRadius: 20
+    },
+    receiverMessageBackground: {
+        marginBottom: 5,
+        left: 20,
+        alignSelf: 'flex-start',
+        backgroundColor: 'white',
+        flexWrap: 'wrap',
+        justifyContent: 'center',
+        alignItems: 'center',
+        maxWidth: '70%',
+        borderRadius: 20,
+        borderTopLeftRadius: 0,
+        paddingVertical: 8,
+        paddingHorizontal: 15,
+        // shadow
+        elevation: 7,
+        shadowColor: 'white',
+        shadowOpacity: 0.5,
+        shadowRadius: 20
+    },
+    userMessageText: {
+        fontFamily: 'HelveticaNeue',
+        textAlign: 'left',
+        fontSize: 16,
+        fontWeight: '600',
+        color: '#FFFFFF'
+    },
+    receiverMessageText: {
+        fontFamily: 'HelveticaNeue',
+        textAlign: 'left',
+        fontSize: 16,
+        fontWeight: '600',
+        color: '#323333'
+    },
+    messages: {
+
+    },
+    bottom: {
+        alignSelf: 'center',
+        margin: 10,
+        width: '90%',
+        borderColor: '#C3D4D9',
+        borderWidth: 2,
+        borderRadius: 15,
+        backgroundColor: '#FFFFFF',
+        flexDirection: 'row',
+    },
+    textInputContainer: {
+        width: '80%',
+        minHeight: 40,
+        maxHeight: 160,
+        justifyContent: 'center',
+        paddingHorizontal: 10
+    },
+    messageText: {
+        fontFamily: 'HelveticaNeue',
+        fontWeight: 'bold',
+        fontSize: 13
+    },
+    sendButton: {
+        width: '20%',
+        justifyContent: 'center',
+        alignItems: 'center',
+        height: 40
+    },
+    sendText: {
+        fontFamily: 'HelveticaNeue',
+        fontWeight: 'normal',
+        fontSize: 13
+    }
+});

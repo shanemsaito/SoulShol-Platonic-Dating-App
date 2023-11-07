@@ -1,0 +1,33 @@
+# Uncomment the next line to define a global platform for your project
+platform :ios, '9.0'
+
+target 'soulShol' do
+  # Uncomment the next line if you're using Swift or would like to use dynamic frameworks
+  # use_frameworks!
+
+  # Pods for soulShol
+
+pod 'Firebase/Core'
+pod 'Firebase/Auth'
+pod 'Firebase/Firestore'
+pod 'Firebase/Messaging'
+pod 'Firebase/Database'
+
+  target 'soulShol-tvOSTests' do
+    inherit! :search_paths
+    # Pods for testing
+  end
+
+  target 'soulSholTests' do
+    inherit! :search_paths
+    # Pods for testing
+  end
+
+end
+
+target 'soulShol-tvOS' do
+  # Uncomment the next line if you're using Swift or would like to use dynamic frameworks
+  # use_frameworks!
+
+
+end

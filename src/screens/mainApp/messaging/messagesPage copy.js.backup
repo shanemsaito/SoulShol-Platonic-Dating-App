@@ -1,0 +1,257 @@
+import React from 'react';
+import { View, StyleSheet, Text, FlatList, TouchableOpacity, Modal } from 'react-native';
+import firebase from 'react-native-firebase';
+import ChatPage from './chatPage';
+import MyContext from '../../../utils/MyContext';
+
+/* TODO
+1. Have the time stamps on messages respect the users' specified timezones
+2. Redo MessagePreview UI
+
+*/
+
+//This username list will be very memory intensive once the userbase grows.
+//It would be best to simply query for the user that matches the correct UID
+let uidToUsernameList = {};
+
+const MessagePreview = (props) => {
+    //This component shows a conversation's latest message.
+    //It has the title of the conversation (usually the user), the message itself, and the time send
+    return (
+        <TouchableOpacity
+            style={styles.messageBackground}
+            onPress={props.onPress}
+        >
+
+            <View style={styles.leftContainer}>
+
+                <Text style={styles.messagePreviewUsername}>
+                    {props.username}
+                </Text>
+
+                <Text style={styles.messagePreviewMessage}>
+                    {props.message}
+                </Text>
+
+            </View>
+
+            <View style={styles.rightContainer}>
+                <Text style={styles.messagePreviewTime}>
+                    {props.time}
+                </Text>
+            </View>
+
+        </TouchableOpacity>
+    );
+};
+
+export default function MessagesPage() {
+    let [messages, setMessages] = React.useState([]);
+    let [goToConvo, setGoToConvo] = React.useState(false);
+    let [conversation, setConversation] = React.useState([]);
+    let [receiverUID, setReceiverUID] = React.useState('');
+    let [convoReference, setConvoReference] = React.useState('');
+    let [username, setUsername] = React.useState('');
+
+    let { user } = React.useContext(MyContext);
+    const userUID = (user) ? user.uid : '';
+
+    React.useEffect(() => {
+        // References user's recent messages stored in Realtime DB
+        const messageListRef = firebase.database().ref('messages/recentMessages/' + userUID).orderByChild('time');
+
+        // Finds all of the user's recent messages stored in Realtime DB and stores each message in messages
+        messageListRef.on('value', snapshot => {
+            // Clearing the array before adding the new set of messages
+            setMessages([]);
+
+            snapshot.forEach(childSnapshot => {
+                setMessages(messages => [...messages, childSnapshot.val()])
+            });
+        });
+
+        //
+        firebase.firestore().collection('userAuth').doc('uidToUsername').get()
+            .then(doc => {
+                uidToUsernameList = doc.data();
+            })
+            .catch(error => {
+                console.log(error.message);
+            });
+
+        return () => messageListRef.off();
+    }, [])
+
+    const onPressBack = () => {
+        //Reference to user's recent messages
+        const messageListRef = firebase.database().ref('messages/recentMessages/' + userUID).orderByChild('time');
+
+        //Turning the listener back on
+        messageListRef.on('value', snapshot => {
+            //Clearing the array before adding the new set of messages
+            setMessages([]);
+
+            snapshot.forEach(childSnapshot => {
+                setMessages(messages => [...messages, childSnapshot.val()])
+            });
+
+            //Turning the chat modal off
+            setGoToConvo(false);
+        });
+    };
+
+    const viewChat = (item) => {
+        //Reference to user's recent messages
+        const messageListRef = firebase.database().ref('messages/recentMessages/' + userUID).orderByChild('time');
+
+        //Turning off the listener to recent messages
+        messageListRef.off();
+
+        //The reference to the chat (which is two useruid's attached by an underscore) 
+        //between the two users could be in a different order, so we use both.
+        const chatRefOne = firebase.database().ref('messages/conversations/' + item.sender + '_' + item.receiver);
+        const chatRefTwo = firebase.database().ref('messages/conversations/' + item.receiver + '_' + item.sender);
+
+        // Checking the first reference
+        chatRefOne.once('value', snapshot => {
+            // If the reference exists, we save the order as sender first, receiver second
+            if (snapshot.exists()) {
+                setConvoReference(item.sender + '_' + item.receiver);
+                // item.reciever could be the current user, so we need to make sure that recieverUID is whoever the current user is sending a message to
+                setReceiverUID((item.receiver === userUID) ? item.sender : item.receiver)
+                setGoToConvo(true)
+            } else {
+                console.log('Reference does not exist, checking other reference');
+            }
+        });
+
+        // If the first reference does not work, we check this one.
+        chatRefTwo.once('value', snapshot => {
+            // If the reference exists, we save the order as receiver first, sender second
+            if (snapshot.exists()) {
+                setConvoReference(item.receiver + '_' + item.sender);
+                setReceiverUID((item.receiver === userUID) ? item.sender : item.receiver);
+                setGoToConvo(true);
+            } else {
+                console.log('No references exist, there are no conversations saved');
+            }
+        });
+    };
+
+
+    return (
+        <View style={styles.background}>
+
+            <View style={styles.messagesPageHeaderView}>
+                <Text style={styles.messagesPageHeaderText}>
+                    Messages
+                </Text>
+            </View>
+
+            {
+                messages.length === 0 &&
+                <Text style={styles.inboxEmptyText}>
+                    Inbox Empty
+                </Text>
+            }
+
+            {
+                messages.length > 0 &&
+                <FlatList
+                    data={messages}
+                    keyExtractor={(_item, index) => index.toString()}
+                    renderItem={({ item }) =>
+                        <MessagePreview
+                            username={
+                                (item.sender === userUID)
+                                    ? uidToUsernameList[item.receiver]
+                                    : uidToUsernameList[item.sender]
+                            }
+                            message={item.message}
+                            //If the message was sent less than a day ago, say the time (i.e. "5:43")
+                            //If the message was sent yesterday, say "Yesterday"
+                            //If the message is sent within a week ago, say the day (i.e. "Monday")
+                            //IF the messagew was sent more than a week ago, say the date (i.e. "9/14/2019")
+                            // time={
+                            //     (item.time < Date.now() - 604800000)
+                            //         ? Intl.DateTimeFormat('en-US').format(item.time)
+                            //         : (item.time < Date.now() - 86400000)
+                            //             ? Intl.DateTimeFormat('en-US', { weekday: 'long' }).format(item.time)
+                            //             : Intl.DateTimeFormat('en-US', { hour12: true, hour: '2-digit', minute: '2-digit' }).format(item.time)
+                            // }
+                            onPress={() => viewChat(item)}
+                        />
+                    }
+                />
+            }
+
+            {
+                goToConvo &&
+                <Modal>
+                    <ChatPage convoReference={convoReference}
+                        //This receiverUID prop may be getting 
+                        receiverUID={receiverUID}
+                        goBack={onPressBack}
+                        username={uidToUsernameList[receiverUID]}
+                    />
+                </Modal>
+            }
+
+        </View>
+    );
+
+};
+
+const styles = StyleSheet.create({
+    background: {
+        justifyContent: 'center',
+        alignItems: 'center',
+        backgroundColor: '#F0F3F5'
+    },
+    messagesPageHeaderView: {
+        margin: 10
+    },
+    messagesPageHeaderText: {
+        fontFamily: 'HelveticaNeue',
+        fontSize: 30,
+        fontWeight: '600',
+        color: 'black'
+    },
+    inboxEmptyText: {
+        fontFamily: 'HelveticaNeue',
+        fontSize: 15,
+        fontWeight: '600'
+    },
+    messageBackground: {
+        width: '100%',
+        height: 80,
+        backgroundColor: '#FFFFFF',
+        flexDirection: 'row',
+        justifyContent: 'center',
+        borderBottomWidth: 1,
+        borderBottomColor: 'gray'
+    },
+    messagePreviewUsername: {
+        fontFamily: 'HelveticaNeue',
+        fontSize: 20,
+        color: 'black',
+        fontWeight: '600',
+        margin: 5
+    },
+    messagePreviewText: {
+        fontFamily: 'HelveticaNeue',
+        fontSize: 10,
+        color: 'dimgray',
+        fontWeight: '600',
+        margin: 5
+    },
+    messagePreviewTime: {
+
+    },
+    leftContainer: {
+        left: 0
+    },
+    rightContainer: {
+        right: 0
+    }
+});

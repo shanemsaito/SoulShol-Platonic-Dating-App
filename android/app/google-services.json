@@ -1,0 +1,47 @@
+{
+  "project_info": {
+    "project_number": "992056496978",
+    "firebase_url": "https://soulshol-52c53.firebaseio.com",
+    "project_id": "soulshol-52c53",
+    "storage_bucket": "soulshol-52c53.appspot.com"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:992056496978:android:29a17f002bfb2b3c",
+        "android_client_info": {
+          "package_name": "com.soulshol"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "992056496978-n1udm01c2d8pa1oq7trr8vo4sg8tvf6d.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCTy7x-nXf_17avozEZIgjZcQ4Q-oIG3nE"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "992056496978-n1udm01c2d8pa1oq7trr8vo4sg8tvf6d.apps.googleusercontent.com",
+              "client_type": 3
+            },
+            {
+              "client_id": "992056496978-ij7f1hhe0v87862lp7l961hsn6u4meof.apps.googleusercontent.com",
+              "client_type": 2,
+              "ios_info": {
+                "bundle_id": "com.soulshol"
+              }
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

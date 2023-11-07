@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<key>CLIENT_ID</key>
+	<string>992056496978-ij7f1hhe0v87862lp7l961hsn6u4meof.apps.googleusercontent.com</string>
+	<key>REVERSED_CLIENT_ID</key>
+	<string>com.googleusercontent.apps.992056496978-ij7f1hhe0v87862lp7l961hsn6u4meof</string>
+	<key>API_KEY</key>
+	<string>AIzaSyDvAVRO58OQlEomrGBocucJQxZ0jgrMWfE</string>
+	<key>GCM_SENDER_ID</key>
+	<string>992056496978</string>
+	<key>PLIST_VERSION</key>
+	<string>1</string>
+	<key>BUNDLE_ID</key>
+	<string>com.soulshol</string>
+	<key>PROJECT_ID</key>
+	<string>soulshol-52c53</string>
+	<key>STORAGE_BUCKET</key>
+	<string>soulshol-52c53.appspot.com</string>
+	<key>IS_ADS_ENABLED</key>
+	<false></false>
+	<key>IS_ANALYTICS_ENABLED</key>
+	<false></false>
+	<key>IS_APPINVITE_ENABLED</key>
+	<true></true>
+	<key>IS_GCM_ENABLED</key>
+	<true></true>
+	<key>IS_SIGNIN_ENABLED</key>
+	<true></true>
+	<key>GOOGLE_APP_ID</key>
+	<string>1:992056496978:ios:29a17f002bfb2b3c</string>
+	<key>DATABASE_URL</key>
+	<string>https://soulshol-52c53.firebaseio.com</string>
+</dict>
+</plist>
